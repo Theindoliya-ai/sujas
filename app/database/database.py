@@ -12,26 +12,24 @@ DATABASE_URL = os.getenv(
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-_is_sqlite    = DATABASE_URL.startswith("sqlite")
-_is_supabase  = "supabase.co" in DATABASE_URL
+_is_sqlite   = DATABASE_URL.startswith("sqlite")
+_is_supabase = "supabase.co" in DATABASE_URL
 
 # ── Engine kwargs ──────────────────────────────────────────────────────────
 if _is_sqlite:
-    # SQLite: single-thread safety guard
     _engine_kwargs = {
         "connect_args": {"check_same_thread": False},
     }
 else:
-    # PostgreSQL (Render, Supabase, etc.)
-    _connect_args = {}
-    if _is_supabase:
-        # Supabase requires SSL; reject invalid certs in production
-        _connect_args["sslmode"] = "require"
+    # Append sslmode=require directly to URL for Supabase (more reliable
+    # than passing via connect_args with psycopg2)
+    if _is_supabase and "sslmode" not in DATABASE_URL:
+        DATABASE_URL += "?sslmode=require"
 
     _engine_kwargs = {
-        "connect_args":  _connect_args,
-        "pool_pre_ping": True,    # drop stale connections before reuse
-        "pool_recycle":  300,     # recycle connections every 5 min
+        "connect_args":  {},
+        "pool_pre_ping": True,
+        "pool_recycle":  300,
         "pool_size":     5,
         "max_overflow":  10,
     }
