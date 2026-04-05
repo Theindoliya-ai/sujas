@@ -88,7 +88,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
     # Always call verify_password even on a dummy hash so response time is
     # constant whether the username exists or not (timing-safe).
-    _dummy_hash = "$2b$12$KIXfakehashjustfortimingXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    _dummy_hash = "$2b$12$KIXfakehashjustfortimiuVfFVvTK7T4v1FLIXmVIRCZ2vrmhHC"
     password_ok = verify_password(
         payload.password,
         user.password if user else _dummy_hash,
