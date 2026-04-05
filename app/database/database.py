@@ -1,19 +1,37 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine import URL as _SA_URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from urllib.parse import urlparse
 import os
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./sujas.db",   # local fallback only
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sujas.db")
 
-# Render / some hosts supply postgres:// — SQLAlchemy requires postgresql://
+# Render supplies postgres:// — SQLAlchemy requires postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 _is_sqlite   = DATABASE_URL.startswith("sqlite")
 _is_supabase = "supabase.co" in DATABASE_URL
+
+# ── Rebuild URL safely if DB_PASSWORD is set separately ───────────────────
+# This avoids URL-parsing failures when the password contains special
+# characters such as '@', '/', '?', '#', etc.
+_db_password = os.getenv("DB_PASSWORD")
+if _db_password and not _is_sqlite:
+    _p = urlparse(DATABASE_URL)
+    DATABASE_URL = str(_SA_URL.create(
+        drivername="postgresql+psycopg2",
+        username=_p.username or "postgres",
+        password=_db_password,
+        host=_p.hostname,
+        port=_p.port or 5432,
+        database=(_p.path or "/postgres").lstrip("/"),
+        query={"sslmode": "require"} if _is_supabase else {},
+    ))
+
+elif _is_supabase and "sslmode" not in DATABASE_URL:
+    DATABASE_URL += "?sslmode=require"
 
 # ── Engine kwargs ──────────────────────────────────────────────────────────
 if _is_sqlite:
@@ -21,13 +39,7 @@ if _is_sqlite:
         "connect_args": {"check_same_thread": False},
     }
 else:
-    # Append sslmode=require directly to URL for Supabase (more reliable
-    # than passing via connect_args with psycopg2)
-    if _is_supabase and "sslmode" not in DATABASE_URL:
-        DATABASE_URL += "?sslmode=require"
-
     _engine_kwargs = {
-        "connect_args":  {},
         "pool_pre_ping": True,
         "pool_recycle":  300,
         "pool_size":     5,
