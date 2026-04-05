@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>सुजस Notes — Daily Summaries</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">सुजस <span>Notes</span></a>
+    <div class="nav-center">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="index.html" class="nav-link">सुजस</a>
+      <a href="economics.html" class="nav-link">Economics Survey</a>
+    </div>
+    <div class="nav-right">
+      <a href="admin.html" class="nav-btn">Admin</a>
+    </div>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="index.html" class="nav-link">सुजस</a>
+    <a href="economics.html" class="nav-link">Economics Survey</a>
+    <a href="admin.html" class="nav-btn">Admin</a>
+  </div>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<div class="sujas-hero">
+  <div class="sujas-hero-inner">
+    <p class="sujas-hero-eyebrow">सुजस Notes</p>
+    <h1 class="sujas-hero-title">Your complete <span>study hub</span></h1>
+    <p class="sujas-hero-sub">Daily current affairs summaries and Economic Survey notes — all in one place.</p>
+  </div>
+</div>
+
+<!-- ── Section cards ─────────────────────────────────────────────────────── -->
+<div class="home-sections">
+  <div class="home-sections-inner">
+
+    <a class="home-sec-card anim anim-d1" href="index.html#sujas-content">
+      <div class="home-sec-icon">📰</div>
+      <div class="home-sec-body">
+        <h2 class="home-sec-title">सुजस सार</h2>
+        <p class="home-sec-sub">Daily current affairs summaries, grouped by month. Exam-ready and concise.</p>
+      </div>
+      <span class="home-sec-arrow">→</span>
+    </a>
+
+    <a class="home-sec-card anim anim-d2" href="economics.html">
+      <div class="home-sec-icon">📈</div>
+      <div class="home-sec-body">
+        <h2 class="home-sec-title">Economics Survey</h2>
+        <p class="home-sec-sub">Chapter-wise notes from the Economic Survey of Rajasthan — with video links.</p>
+      </div>
+      <span class="home-sec-arrow">→</span>
+    </a>
+
+  </div>
+</div>
+
+<!-- ── Page ─────────────────────────────────────────────────────────────── -->
+<main class="page" id="sujas-content" style="padding-top:40px;">
+
+  <!-- Filter bar -->
+  <div class="sj-filter-bar">
+    <div class="sj-filter-left">
+      <svg class="sj-filter-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span class="sj-filter-label">Filter by month</span>
+    </div>
+    <div class="sj-chips-wrap">
+      <div class="sj-chips" id="filterChips">
+        <button class="sj-chip active" data-month="">All</button>
+      </div>
+    </div>
+    <span class="sj-result-count" id="resultCount" style="display:none;"></span>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <div class="sk-cards-grid">
+      <div class="sk-card">
+        <div class="sk sk-date"></div>
+        <div class="sk sk-title"></div>
+        <div class="sk sk-title sk-title-sm"></div>
+        <div class="sk sk-line"></div>
+        <div class="sk sk-line sk-line-sm"></div>
+        <div class="sk-card-footer"><div class="sk sk-btn-sm"></div></div>
+      </div>
+      <div class="sk-card">
+        <div class="sk sk-date"></div>
+        <div class="sk sk-title"></div>
+        <div class="sk sk-title sk-title-sm"></div>
+        <div class="sk sk-line"></div>
+        <div class="sk sk-line sk-line-sm"></div>
+        <div class="sk-card-footer"><div class="sk sk-btn-sm"></div></div>
+      </div>
+      <div class="sk-card">
+        <div class="sk sk-date"></div>
+        <div class="sk sk-title"></div>
+        <div class="sk sk-title sk-title-sm"></div>
+        <div class="sk sk-line"></div>
+        <div class="sk sk-line sk-line-sm"></div>
+        <div class="sk-card-footer"><div class="sk sk-btn-sm"></div></div>
+      </div>
+      <div class="sk-card">
+        <div class="sk sk-date"></div>
+        <div class="sk sk-title"></div>
+        <div class="sk sk-title sk-title-sm"></div>
+        <div class="sk sk-line"></div>
+        <div class="sk sk-line sk-line-sm"></div>
+        <div class="sk-card-footer"><div class="sk sk-btn-sm"></div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+<script>
+  let allSummaries = [];
+  let activeGroup  = '';
+
+  /* ── Boot ──────────────────────────────────────────────────────────────── */
+  async function init() {
+    try {
+      allSummaries = await fetchAll();
+      populateChips();
+      render();
+    } catch (err) {
+      document.getElementById('content').innerHTML = `
+        <div class="state-box">
+          <div class="icon">⚠️</div>
+          <p>Could not load summaries. Make sure the API server is running.<br>
+          <small style="color:var(--danger)">${escHtml(err.message)}</small></p>
+        </div>`;
+    }
+  }
+
+  async function fetchAll() {
+    const PAGE = 100;
+    const first = await api.getSummaries({ page: 1, pageSize: PAGE });
+    const all   = [...first.results];
+    const pages = Math.ceil(first.total / PAGE);
+    if (pages > 1) {
+      const rest = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, i) =>
+          api.getSummaries({ page: i + 2, pageSize: PAGE })
+        )
+      );
+      rest.forEach(d => all.push(...d.results));
+    }
+    return all.sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  /* ── Group helpers ─────────────────────────────────────────────────────── */
+  function monthYearOf(s) {
+    return `${s.month} ${s.date.slice(0, 4)}`;
+  }
+
+  function groupSummaries(list) {
+    const map = new Map();
+    for (const s of list) {
+      const key = monthYearOf(s);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
+    }
+    return [...map.entries()]
+      .map(([label, items]) => ({ label, items }))
+      .sort((a, b) => b.items[0].date.localeCompare(a.items[0].date));
+  }
+
+  /* ── Filter chips ──────────────────────────────────────────────────────── */
+  function populateChips() {
+    const wrap  = document.getElementById('filterChips');
+    const groups = groupSummaries(allSummaries);
+
+    /* Remove all except "All" chip */
+    [...wrap.children].slice(1).forEach(c => c.remove());
+
+    for (const { label } of groups) {
+      const btn = document.createElement('button');
+      btn.className = 'sj-chip';
+      btn.dataset.month = label;
+      btn.textContent = label;
+      wrap.appendChild(btn);
+    }
+
+    wrap.addEventListener('click', e => {
+      const chip = e.target.closest('.sj-chip');
+      if (!chip) return;
+      wrap.querySelectorAll('.sj-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeGroup = chip.dataset.month;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  /* ── Render ────────────────────────────────────────────────────────────── */
+  function render() {
+    const list = activeGroup
+      ? allSummaries.filter(s => monthYearOf(s) === activeGroup)
+      : allSummaries;
+
+    const count   = document.getElementById('resultCount');
+    const content = document.getElementById('content');
+
+    if (list.length) {
+      count.textContent = `${list.length} ${list.length === 1 ? 'entry' : 'entries'}`;
+      count.style.display = '';
+    } else {
+      count.style.display = 'none';
+    }
+
+    if (!list.length) {
+      content.innerHTML = `
+        <div class="state-box">
+          <div class="icon">📭</div>
+          <p>No summaries found${activeGroup ? ' for ' + escHtml(activeGroup) : ''}.</p>
+        </div>`;
+      return;
+    }
+
+    const groups = groupSummaries(list);
+
+    content.innerHTML = groups.map(({ label, items }) => {
+
+      const [monthName, year] = label.split(' ');
+      return `
+      <section class="sj-month-section anim">
+
+        <div class="sj-month-heading">
+          <div class="sj-month-label">
+            <span class="sj-month-name">${escHtml(monthName)}</span>
+            <span class="sj-month-year">${escHtml(year)}</span>
+          </div>
+          <div class="sj-month-divider"></div>
+          <span class="sj-month-badge">${items.length} ${items.length === 1 ? 'entry' : 'entries'}</span>
+        </div>
+
+        <div class="sj-cards-grid">
+          ${items.map((s, i) => {
+            const excerpt = stripHtml(s.content_html).slice(0, 160);
+            const d = i < 4 ? ` anim-d${i + 1}` : '';
+            return `
+            <a class="sj-card anim${d}" href="post.html?date=${s.slug}">
+              <div class="sj-card-top">
+                <span class="sj-card-date">${formatDate(s.date)}</span>
+                ${s.pdf_url ? '<span class="badge pdf">PDF</span>' : ''}
+              </div>
+              <h3 class="sj-card-title">${escHtml(s.title)}</h3>
+              <p class="sj-card-excerpt">${escHtml(excerpt)}${excerpt.length >= 160 ? '…' : ''}</p>
+              <div class="sj-card-footer">
+                <span class="sj-read-btn">Read More <span class="sj-arrow">→</span></span>
+              </div>
+            </a>`;
+          }).join('')}
+        </div>
+
+      </section>`;
+    }).join('');
+    animateOnScroll();
+  }
+
+  /* ── Helpers ───────────────────────────────────────────────────────────── */
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+</script>
+</body>
+</html>

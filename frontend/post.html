@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Summary — सुजस</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Page background for reading — slightly off-white, easy on eyes */
+    body { background: #f8fafc; }
+
+    /* Print: hide chrome, show only content */
+    @media print {
+      .nav, .post-breadcrumb, .post-actions,
+      .sticky-pdf, .post-meta-row .post-actions { display: none !important; }
+      body { background: #fff; }
+      .post-body { font-size: 12pt; line-height: 1.7; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ───────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">सुजस <span>Notes</span></a>
+    <div class="nav-center">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="index.html" class="nav-link">सुजस</a>
+      <a href="economics.html" class="nav-link">Economics Survey</a>
+    </div>
+    <div class="nav-right">
+      <a href="admin.html" class="nav-btn">Admin</a>
+    </div>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="index.html" class="nav-link">सुजस</a>
+    <a href="economics.html" class="nav-link">Economics Survey</a>
+    <a href="admin.html" class="nav-btn">Admin</a>
+  </div>
+</nav>
+
+<!-- ── Page ──────────────────────────────────────────────────────────────── -->
+<main class="page">
+  <div class="reading-wrap">
+
+    <!-- Loading skeleton -->
+    <div id="loadingState">
+      <div class="sk-post">
+        <div class="sk sk-badge"></div>
+        <div class="sk sk-post-title"></div>
+        <div class="sk sk-post-title sk-post-title-sm"></div>
+        <div class="sk sk-post-meta"></div>
+        <div class="sk-divider"></div>
+        <div class="sk sk-para"></div>
+        <div class="sk sk-para"></div>
+        <div class="sk sk-para sk-para-md"></div>
+        <div class="sk sk-para"></div>
+        <div class="sk sk-para sk-para-sm"></div>
+        <br>
+        <div class="sk sk-para"></div>
+        <div class="sk sk-para sk-para-md"></div>
+        <div class="sk sk-para"></div>
+        <div class="sk sk-para sk-para-sm"></div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="errorState" class="state-box" style="display:none;">
+      <div class="icon">⚠️</div>
+      <p id="errorMsg">Something went wrong.</p>
+      <a href="index.html" class="btn btn-outline" style="margin-top:16px;">
+        ← Back to summaries
+      </a>
+    </div>
+
+    <!-- Content -->
+    <div id="postContent" style="display:none;">
+
+      <!-- Breadcrumb -->
+      <nav class="post-breadcrumb" aria-label="Breadcrumb">
+        <a href="index.html">← सुजस सार</a>
+        <span class="sep">/</span>
+        <span id="breadcrumbMonth" style="color:var(--text-muted);"></span>
+      </nav>
+
+      <!-- Hero -->
+      <header class="post-hero" id="postHero">
+        <div class="meta">
+          <span class="badge" id="postMonth"></span>
+          <span class="badge pdf" id="pdfBadge" style="display:none;">PDF</span>
+        </div>
+
+        <h1 id="postTitle"></h1>
+
+        <!-- Meta + actions strip -->
+        <div class="post-meta-row">
+          <div class="post-meta-item">
+            <span class="icon">📅</span>
+            <span id="postDate"></span>
+          </div>
+          <div class="post-meta-item">
+            <span class="icon">📂</span>
+            <span id="postMonthLabel"></span>
+          </div>
+
+          <div class="post-actions" id="headerActions">
+            <a id="pdfDownloadBtn"
+               class="btn btn-primary btn-sm"
+               style="display:none;"
+               target="_blank" rel="noopener">
+              ↓ Download PDF
+            </a>
+            <a id="pdfViewBtn"
+               class="btn btn-outline btn-sm"
+               style="display:none;"
+               target="_blank" rel="noopener">
+              View PDF
+            </a>
+            <button class="btn btn-ghost btn-sm" onclick="window.print()">
+              🖨 Print
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Body — rendered in an iframe so uploaded CSS/JS executes properly -->
+      <iframe id="postBody"
+              style="width:100%;border:none;display:block;min-height:200px;"
+              scrolling="no"
+              title="Summary content"></iframe>
+
+      <!-- Footer nav -->
+      <div style="margin-top:48px; padding-top:24px; border-top:1px solid var(--border);
+                  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <a href="index.html" class="btn btn-ghost">← Back to summaries</a>
+        <button class="btn btn-ghost" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+          ↑ Back to top
+        </button>
+      </div>
+
+    </div>
+  </div><!-- /reading-wrap -->
+</main>
+
+<!-- ── Sticky PDF button ──────────────────────────────────────────────────── -->
+<a id="stickyPdf"
+   class="sticky-pdf"
+   target="_blank" rel="noopener"
+   style="display:none;">
+  <span class="pdf-icon">📄</span>
+  Download PDF
+</a>
+
+<script src="app.js"></script>
+<script>
+  const API_HOST = 'http://localhost:8000';
+
+  /* ── Load & render ──────────────────────────────────────────────────── */
+  async function loadPost() {
+    const params = new URLSearchParams(location.search);
+    const slug   = params.get('date');   /* preferred: ?date=2026/04/01  */
+    const legacyId = parseInt(params.get('id'), 10); /* fallback: ?id=1  */
+
+    if (!slug && (!legacyId || isNaN(legacyId))) {
+      showError('No summary specified. Use ?date=YYYY/MM/DD or ?id=N.');
+      return;
+    }
+
+    try {
+      const s = slug
+        ? await api.getSummaryBySlug(slug)
+        : await api.getSummary(legacyId);
+
+      /* Canonicalise URL to slug form without triggering a page reload */
+      if (!slug && s.slug) {
+        const canonical = `${location.pathname}?date=${s.slug}`;
+        history.replaceState(null, '', canonical);
+      }
+
+      render(s);
+    } catch (err) {
+      showError(err.message || 'Could not load summary.');
+    }
+  }
+
+  function render(s) {
+    document.title = `${s.title} — सुजस`;
+
+    document.getElementById('breadcrumbMonth').textContent  = `${s.month} ${s.date.slice(0,4)}`;
+    document.getElementById('postMonth').textContent        = s.month;
+    document.getElementById('postMonthLabel').textContent   = `${s.month} ${s.date.slice(0,4)}`;
+    document.getElementById('postDate').textContent         = formatDate(s.date);
+    document.getElementById('postTitle').textContent        = s.title;
+
+    // Render in iframe so uploaded <script> and <style> tags execute correctly
+    const frame = document.getElementById('postBody');
+    frame.srcdoc = s.content_html;
+    frame.addEventListener('load', function resize() {
+      try {
+        const h = frame.contentDocument.documentElement.scrollHeight;
+        frame.style.height = h + 'px';
+      } catch (e) {
+        frame.style.height = '800px';
+      }
+    });
+
+    if (s.pdf_url) {
+      const url = `${API_HOST}${s.pdf_url}`;
+
+      document.getElementById('pdfBadge').style.display       = '';
+      document.getElementById('pdfDownloadBtn').style.display = '';
+      document.getElementById('pdfViewBtn').style.display     = '';
+      document.getElementById('pdfDownloadBtn').href          = url;
+      document.getElementById('pdfDownloadBtn').download      = `${s.title}.pdf`;
+      document.getElementById('pdfViewBtn').href              = url;
+
+      // Sticky button
+      const sticky = document.getElementById('stickyPdf');
+      sticky.href  = url;
+      sticky.style.display = '';
+
+      // Show sticky after scrolling past the hero
+      const hero = document.getElementById('postHero');
+      const obs  = new IntersectionObserver(([e]) => {
+        sticky.classList.toggle('visible', !e.isIntersecting);
+      }, { threshold: 0 });
+      obs.observe(hero);
+    }
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('postContent').style.display  = '';
+  }
+
+  function showError(msg) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorMsg').textContent       = msg;
+    document.getElementById('errorState').style.display  = '';
+  }
+
+  loadPost();
+</script>
+</body>
+</html>

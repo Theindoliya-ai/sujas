@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Economics Survey — सुजस Notes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">सुजस <span>Notes</span></a>
+    <div class="nav-center">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="index.html" class="nav-link">सुजस</a>
+      <a href="economics.html" class="nav-link">Economics Survey</a>
+    </div>
+    <div class="nav-right">
+      <a href="admin.html" class="nav-btn">Admin</a>
+    </div>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="index.html" class="nav-link">सुजस</a>
+    <a href="economics.html" class="nav-link">Economics Survey</a>
+    <a href="admin.html" class="nav-btn">Admin</a>
+  </div>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────────── -->
+<div class="ec-hero">
+  <div class="ec-hero-inner">
+    <p class="ec-hero-eyebrow">Government of Rajasthan &nbsp;·&nbsp; Ministry of Finance</p>
+    <h1 class="ec-hero-title">Economic <span>Survey</span></h1>
+    <p class="ec-hero-sub">Chapter-wise notes and analysis of the Economic Survey of Rajasthan.</p>
+  </div>
+</div>
+
+<!-- ── Page ──────────────────────────────────────────────────────────────────── -->
+<main class="page" style="padding-top:36px;">
+
+  <!-- Search + count -->
+  <div class="ec-toolbar">
+    <div class="ec-search-wrap">
+      <svg class="ec-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="searchInput" class="ec-search-input"
+             placeholder="Search chapters by name…" autocomplete="off" />
+    </div>
+    <span class="ec-count" id="resultCount" style="display:none;"></span>
+  </div>
+
+  <!-- Chapter list -->
+  <div id="content">
+    <div class="sk-ec-list">
+      <div class="sk-ec-row"><div class="sk sk-ec-num"></div><div class="sk-ec-body"><div class="sk sk-ec-title"></div><div class="sk sk-ec-sub"></div></div></div>
+      <div class="sk-ec-row"><div class="sk sk-ec-num"></div><div class="sk-ec-body"><div class="sk sk-ec-title"></div><div class="sk sk-ec-sub"></div></div></div>
+      <div class="sk-ec-row"><div class="sk sk-ec-num"></div><div class="sk-ec-body"><div class="sk sk-ec-title"></div><div class="sk sk-ec-sub"></div></div></div>
+      <div class="sk-ec-row"><div class="sk sk-ec-num"></div><div class="sk-ec-body"><div class="sk sk-ec-title"></div><div class="sk sk-ec-sub"></div></div></div>
+      <div class="sk-ec-row"><div class="sk sk-ec-num"></div><div class="sk-ec-body"><div class="sk sk-ec-title"></div><div class="sk sk-ec-sub"></div></div></div>
+      <div class="sk-ec-row"><div class="sk sk-ec-num"></div><div class="sk-ec-body"><div class="sk sk-ec-title"></div><div class="sk sk-ec-sub"></div></div></div>
+    </div>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+<script>
+  let allChapters = [];
+  let searchTimer;
+
+  /* ── Boot ──────────────────────────────────────────────────────────────────── */
+  async function init() {
+    try {
+      allChapters = await fetchAll();
+      render(allChapters);
+    } catch (err) {
+      document.getElementById('content').innerHTML = `
+        <div class="state-box">
+          <div class="icon">⚠️</div>
+          <p>Could not load chapters.<br>
+          <small style="color:var(--danger)">${escHtml(err.message)}</small></p>
+        </div>`;
+    }
+  }
+
+  async function fetchAll() {
+    const PAGE = 100;
+    const first = await api.getChapters({ page: 1, pageSize: PAGE });
+    const all   = [...first.results];
+    const pages = Math.ceil(first.total / PAGE);
+    if (pages > 1) {
+      const rest = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, i) =>
+          api.getChapters({ page: i + 2, pageSize: PAGE })
+        )
+      );
+      rest.forEach(d => all.push(...d.results));
+    }
+    return all.sort((a, b) => a.chapter_no - b.chapter_no);
+  }
+
+  /* ── Render ────────────────────────────────────────────────────────────────── */
+  function render(list) {
+    const count   = document.getElementById('resultCount');
+    const content = document.getElementById('content');
+
+    if (list.length) {
+      count.textContent   = `${list.length} chapter${list.length === 1 ? '' : 's'}`;
+      count.style.display = '';
+    } else {
+      count.style.display = 'none';
+    }
+
+    if (!list.length) {
+      content.innerHTML = `
+        <div class="state-box">
+          <div class="icon">📭</div>
+          <p>No chapters found.</p>
+        </div>`;
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="ec-list">
+        ${list.map((c, i) => {
+          const d = i < 4 ? ` anim-d${i + 1}` : '';
+          return `
+          <a class="ec-row anim${d}" href="chapter.html?id=${c.id}">
+
+            <div class="ec-num-col">
+              <span class="ec-num">${String(c.chapter_no).padStart(2, '0')}</span>
+              <span class="ec-num-label">Chapter</span>
+            </div>
+
+            <div class="ec-body">
+              <div class="ec-name">${escHtml(c.chapter_name)}</div>
+              ${c.chapter_name_hindi
+                ? `<div class="ec-hindi">${escHtml(c.chapter_name_hindi)}</div>`
+                : ''}
+              ${c.topic
+                ? `<div class="ec-topic-wrap"><span class="ec-topic">${escHtml(c.topic)}</span></div>`
+                : ''}
+            </div>
+
+            <div class="ec-action">
+              ${c.youtube_url ? '<span class="ec-video-badge">▶ Video</span>' : ''}
+              <span class="ec-arrow">→</span>
+            </div>
+
+          </a>`;
+        }).join('')}
+      </div>`;
+    animateOnScroll();
+  }
+
+  /* ── Search ────────────────────────────────────────────────────────────────── */
+  document.getElementById('searchInput').addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const q = this.value.trim().toLowerCase();
+      render(q
+        ? allChapters.filter(c =>
+            c.chapter_name.toLowerCase().includes(q) ||
+            (c.chapter_name_hindi || '').toLowerCase().includes(q)
+          )
+        : allChapters
+      );
+    }, 200);
+  });
+
+  /* ── Helper ────────────────────────────────────────────────────────────────── */
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+</script>
+</body>
+</html>
