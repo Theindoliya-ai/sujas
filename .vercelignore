@@ -1,0 +1,7 @@
+app/
+requirements.txt
+runtime.txt
+Procfile
+*.db
+uploads/
+.env*
