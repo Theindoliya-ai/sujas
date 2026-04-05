@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"D:\\\\website\" add app/database/database.py)",
+      "Bash(git -C:*)",
+      "Bash(git -C \"D:\\\\website\" push origin main)"
+    ]
+  }
+}

@@ -28,6 +28,19 @@ class EconomicsChapter(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class BlogPost(Base):
+    __tablename__ = "blog_posts"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    title        = Column(String(255), nullable=False)
+    slug         = Column(String(300), unique=True, nullable=False, index=True)
+    excerpt      = Column(String(500), nullable=True)
+    content_html = Column(Text, nullable=False)
+    is_published = Column(Boolean, nullable=False, default=False)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at   = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class AdminUser(Base):
     __tablename__ = "admin_users"
 

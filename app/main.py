@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
-from app.routes import auth_router, admin_router, summaries_router, economics_router
+from app.routes import auth_router, admin_router, summaries_router, economics_router, blog_router
 
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 
@@ -51,6 +51,7 @@ app.include_router(auth_router, prefix="/api/v1")       # /login  /register
 app.include_router(admin_router, prefix="/api/v1")      # /admin/me  /admin/change-password
 app.include_router(summaries_router, prefix="/api/v1")  # /sujas
 app.include_router(economics_router, prefix="/api/v1")  # /economics
+app.include_router(blog_router, prefix="/api/v1")       # /blog
 
 
 @app.get("/", tags=["Health"])

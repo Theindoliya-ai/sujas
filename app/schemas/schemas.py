@@ -124,6 +124,42 @@ class PaginatedResponse(BaseModel, Generic[T]):
     results: List[T]
 
 
+# ── BlogPost ──────────────────────────────────────────────────────────────────
+
+class BlogPostCreate(BaseModel):
+    title:        str
+    excerpt:      Optional[str] = None
+    content_html: str
+    is_published: bool = False
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("title must not be empty")
+        return v.strip()
+
+
+class BlogPostUpdate(BaseModel):
+    title:        Optional[str] = None
+    excerpt:      Optional[str] = None
+    content_html: Optional[str] = None
+    is_published: Optional[bool] = None
+
+
+class BlogPostResponse(BaseModel):
+    id:           int
+    title:        str
+    slug:         str
+    excerpt:      Optional[str] = None
+    content_html: str
+    is_published: bool
+    created_at:   datetime
+    updated_at:   datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── EconomicsChapter ──────────────────────────────────────────────────────────
 
 class EconomicsChapterBase(BaseModel):

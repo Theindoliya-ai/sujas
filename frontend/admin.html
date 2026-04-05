@@ -736,6 +736,14 @@
         </svg>
         Economics
       </button>
+
+      <button class="adm-nav-item" id="sidebarBlog" onclick="switchTab('blog')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Blog
+      </button>
     </nav>
 
     <div class="adm-sidebar-footer">
@@ -769,6 +777,11 @@
         <div id="topbarEconActions" style="display:none;">
           <button class="adm-btn adm-btn-primary adm-btn-lg" id="econToggleFormBtn">
             + Add Chapter
+          </button>
+        </div>
+        <div id="topbarBlogActions" style="display:none;">
+          <button class="adm-btn adm-btn-primary adm-btn-lg" id="blogToggleFormBtn">
+            + New Post
           </button>
         </div>
       </div>
@@ -1013,6 +1026,80 @@
 
       </div><!-- /economicsSection -->
 
+      <!-- ════════════════════════════════════════════════════════════════════
+           BLOG SECTION
+           ════════════════════════════════════════════════════════════════════ -->
+      <div id="blogSection" style="display:none;">
+
+        <!-- Form drawer -->
+        <div class="adm-panel adm-drawer" id="blogFormDrawer">
+          <div class="adm-drawer-head">
+            <span class="adm-drawer-title" id="blogDrawerTitle">New Blog Post</span>
+            <button class="adm-btn adm-btn-ghost" id="blogCloseDrawerBtn">✕ Close</button>
+          </div>
+          <div class="adm-drawer-body">
+            <div class="adm-alert adm-alert-error"   id="blogFormError"></div>
+            <div class="adm-alert adm-alert-success" id="blogFormSuccess"></div>
+            <form id="blogForm" novalidate>
+              <input type="hidden" id="blogEditId" />
+
+              <div class="adm-form-group">
+                <label for="bfTitle">Title <span class="req">*</span></label>
+                <input id="bfTitle" type="text" placeholder="Post title" required />
+              </div>
+
+              <div class="adm-form-group">
+                <label for="bfExcerpt">Excerpt <span style="color:var(--text-muted);font-weight:400;">(optional — shown on cards)</span></label>
+                <input id="bfExcerpt" type="text" placeholder="Short description…" maxlength="500" />
+              </div>
+
+              <div class="adm-form-group">
+                <label for="bfContent">Content (HTML + code) <span class="req">*</span></label>
+                <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;">
+                  Use <code>&lt;pre&gt;&lt;code class="language-python"&gt;…&lt;/code&gt;&lt;/pre&gt;</code> for syntax-highlighted code blocks.
+                </p>
+                <textarea id="bfContent" rows="16"
+                  style="font-family:monospace;font-size:.85rem;"
+                  placeholder="&lt;p&gt;Your article content…&lt;/p&gt;&#10;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;print('Hello')&lt;/code&gt;&lt;/pre&gt;"
+                  required></textarea>
+              </div>
+
+              <div class="adm-form-group" style="flex-direction:row;align-items:center;gap:10px;">
+                <input type="checkbox" id="bfPublished" style="width:auto;margin:0;" />
+                <label for="bfPublished" style="margin:0;font-weight:600;">Publish immediately</label>
+              </div>
+
+              <div class="adm-form-actions">
+                <button type="button" class="adm-btn adm-btn-ghost" id="blogCancelBtn">Cancel</button>
+                <button type="submit" class="adm-btn adm-btn-primary" id="blogSubmitBtn">Publish Post</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="adm-panel">
+          <div class="adm-panel-head">
+            <h2 class="adm-panel-title">All Posts</h2>
+            <span class="adm-panel-count" id="blogCount">—</span>
+          </div>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th class="td-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="blogTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /blogSection -->
+
     </div><!-- /adm-content -->
   </div><!-- /adm-main -->
 </div><!-- /adm-shell -->
@@ -1112,16 +1199,138 @@
 
   /* ── Sidebar tab switcher ────────────────────────────────────────────────── */
   function switchTab(tab) {
-    const isSujas = tab === 'sujas';
-    document.getElementById('sujasSection').style.display     = isSujas ? '' : 'none';
-    document.getElementById('economicsSection').style.display = isSujas ? 'none' : '';
-    document.getElementById('sidebarSujas').classList.toggle('active', isSujas);
-    document.getElementById('sidebarEconomics').classList.toggle('active', !isSujas);
-    document.getElementById('topbarSujasActions').style.display  = isSujas ? '' : 'none';
-    document.getElementById('topbarEconActions').style.display   = isSujas ? 'none' : '';
-    document.getElementById('topbarTitle').textContent = isSujas ? 'सुजस सार' : 'Economics Survey';
-    if (!isSujas && econAllChapters.length === 0) econLoadAll();
+    const tabs = ['sujas', 'economics', 'blog'];
+    tabs.forEach(t => {
+      const isActive = t === tab;
+      const secMap = { sujas: 'sujasSection', economics: 'economicsSection', blog: 'blogSection' };
+      const sideMap = { sujas: 'sidebarSujas', economics: 'sidebarEconomics', blog: 'sidebarBlog' };
+      const topMap  = { sujas: 'topbarSujasActions', economics: 'topbarEconActions', blog: 'topbarBlogActions' };
+      document.getElementById(secMap[t]).style.display  = isActive ? '' : 'none';
+      document.getElementById(sideMap[t]).classList.toggle('active', isActive);
+      document.getElementById(topMap[t]).style.display  = isActive ? '' : 'none';
+    });
+    const titles = { sujas: 'सुजस सार', economics: 'Economics Survey', blog: 'Blog Posts' };
+    document.getElementById('topbarTitle').textContent = titles[tab];
+    if (tab === 'economics' && econAllChapters.length === 0) econLoadAll();
+    if (tab === 'blog') blogLoadAll();
   }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     BLOG LOGIC
+     ══════════════════════════════════════════════════════════════════════════ */
+  let blogPosts = [];
+  let blogEditing = false;
+
+  async function blogLoadAll() {
+    try {
+      const data = await api.getBlogPosts({ pageSize: 100, all: true });
+      blogPosts  = data.results;
+      blogRenderTable();
+      document.getElementById('blogCount').textContent = blogPosts.length;
+    } catch (e) {
+      showToast('Could not load blog posts: ' + e.message, 'error');
+    }
+  }
+
+  function blogRenderTable() {
+    const tbody = document.getElementById('blogTableBody');
+    if (!blogPosts.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:40px;">No posts yet. Click "+ New Post" to create one.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = blogPosts.map(p => `
+      <tr>
+        <td><strong>${escHtml(p.title)}</strong><br>
+            <small style="color:#94a3b8;font-size:.75rem;">${p.slug}</small></td>
+        <td>
+          <span class="badge" style="background:${p.is_published ? '#dcfce7' : '#fef9c3'};
+                color:${p.is_published ? '#16a34a' : '#92400e'};border:none;">
+            ${p.is_published ? '✓ Published' : '⏸ Draft'}
+          </span>
+        </td>
+        <td style="font-size:.82rem;color:#475569;">${formatDate(p.created_at.split('T')[0])}</td>
+        <td class="td-actions">
+          <a href="blog.html?slug=${encodeURIComponent(p.slug)}" target="_blank" class="adm-btn adm-btn-ghost">View</a>
+          <button class="adm-btn adm-btn-outline" onclick="blogStartEdit(${p.id})">Edit</button>
+          <button class="adm-btn adm-btn-danger" onclick="openDeleteModal('${escHtml(p.title).replace(/'/g,"\\'")}', async () => {
+            await api.deleteBlogPost(${p.id});
+            await blogLoadAll();
+          })">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function blogOpenDrawer(title = 'New Blog Post') {
+    document.getElementById('blogDrawerTitle').textContent = title;
+    document.getElementById('blogFormDrawer').classList.add('open');
+    document.getElementById('bfTitle').focus();
+  }
+
+  function blogCloseDrawer() {
+    document.getElementById('blogFormDrawer').classList.remove('open');
+    document.getElementById('blogForm').reset();
+    document.getElementById('blogEditId').value = '';
+    document.getElementById('bfPublished').checked = false;
+    admHideAlert(document.getElementById('blogFormError'));
+    admHideAlert(document.getElementById('blogFormSuccess'));
+    blogEditing = false;
+    document.getElementById('blogSubmitBtn').textContent = 'Publish Post';
+  }
+
+  function blogStartEdit(id) {
+    const post = blogPosts.find(p => p.id === id);
+    if (!post) return;
+    blogEditing = true;
+    document.getElementById('blogEditId').value       = id;
+    document.getElementById('bfTitle').value          = post.title;
+    document.getElementById('bfExcerpt').value        = post.excerpt || '';
+    document.getElementById('bfContent').value        = post.content_html;
+    document.getElementById('bfPublished').checked    = post.is_published;
+    document.getElementById('blogSubmitBtn').textContent = 'Save Changes';
+    blogOpenDrawer('Edit Post');
+  }
+
+  document.getElementById('blogToggleFormBtn').addEventListener('click', () => {
+    blogEditing = false;
+    blogCloseDrawer();
+    blogOpenDrawer();
+  });
+  document.getElementById('blogCloseDrawerBtn').addEventListener('click', blogCloseDrawer);
+  document.getElementById('blogCancelBtn').addEventListener('click', blogCloseDrawer);
+
+  document.getElementById('blogForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const errEl = document.getElementById('blogFormError');
+    const sucEl = document.getElementById('blogFormSuccess');
+    const btn   = document.getElementById('blogSubmitBtn');
+    admHideAlert(errEl);
+    admHideAlert(sucEl);
+    setLoading(btn, true);
+
+    const payload = {
+      title:        document.getElementById('bfTitle').value.trim(),
+      excerpt:      document.getElementById('bfExcerpt').value.trim() || null,
+      content_html: document.getElementById('bfContent').value,
+      is_published: document.getElementById('bfPublished').checked,
+    };
+
+    try {
+      const editId = document.getElementById('blogEditId').value;
+      if (editId) {
+        await api.updateBlogPost(parseInt(editId), payload);
+        showToast('Post updated!');
+      } else {
+        await api.createBlogPost(payload);
+        showToast('Post created!');
+      }
+      blogCloseDrawer();
+      await blogLoadAll();
+    } catch (err) {
+      admShowAlert(errEl, err.message || 'Failed to save post.', 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  });
 
   /* ── Boot ────────────────────────────────────────────────────────────────── */
   function boot() {

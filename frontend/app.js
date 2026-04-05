@@ -133,6 +133,36 @@ const api = {
     });
   },
 
+  /* Blog */
+  getBlogPosts({ page = 1, pageSize = 12, all = false } = {}) {
+    const q = new URLSearchParams({ page, page_size: pageSize });
+    if (all) q.set('all', 'true');
+    return this._fetch(`/blog/?${q}`);
+  },
+  getBlogPost(slug) {
+    return this._fetch(`/blog/${encodeURIComponent(slug)}`);
+  },
+  createBlogPost(data) {
+    return this._fetch('/blog/', {
+      method: 'POST',
+      headers: { ...auth.headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+  updateBlogPost(id, data) {
+    return this._fetch(`/blog/${id}`, {
+      method: 'PUT',
+      headers: { ...auth.headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+  deleteBlogPost(id) {
+    return this._fetch(`/blog/${id}`, {
+      method: 'DELETE',
+      headers: auth.headers(),
+    });
+  },
+
   /* Auth */
   async login(username, password) {
     const data = await this._fetch('/login', {
