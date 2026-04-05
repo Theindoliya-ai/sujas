@@ -45,24 +45,24 @@ def download_pdf(summary_id: int, db: Session = Depends(get_db)):
     pdf_url = summary.pdf_file
 
     if "cloudinary.com" in pdf_url:
-        # Extract public_id from stored URL
-        # URL format: https://res.cloudinary.com/{cloud}/raw/upload/v{ver}/{public_id}.pdf
+        # Extract public_id from stored URL.
+        # For raw resources the extension IS part of the public_id —
+        # do NOT strip it or Cloudinary returns 404.
+        # URL: https://res.cloudinary.com/{cloud}/raw/upload/v{ver}/{public_id}
         url_path = pdf_url.split("?")[0]
         parts    = url_path.split("/upload/")
         if len(parts) == 2:
             after = parts[1]
+            # Strip optional version segment  v1234567890/
             if after.startswith("v") and "/" in after:
-                after = after.split("/", 1)[1]          # strip version segment
-            public_id = after.rsplit(".", 1)[0] if "." in after else after
+                after = after.split("/", 1)[1]
+            public_id = after   # keep full path including .pdf extension
 
-            # Signed URL — valid for 1 hour, forces download with correct filename
-            safe_title = re.sub(r'[^\w\s-]', '', summary.title).strip().replace(' ', '_') \
-                         or f"summary_{summary_id}"
+            # Signed URL — bypasses Strict Transformations & access restrictions
             signed_url, _ = cloudinary.utils.cloudinary_url(
                 public_id,
                 resource_type="raw",
                 sign_url=True,
-                attachment=f"{safe_title}.pdf",   # sets Content-Disposition filename
             )
             return RedirectResponse(url=signed_url)
 
