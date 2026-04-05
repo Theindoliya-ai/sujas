@@ -211,20 +211,33 @@
 
     if (s.pdf_url) {
       const viewUrl = s.pdf_url;
-      // For Cloudinary URLs add fl_attachment so browser downloads instead of previewing
-      const dlUrl = viewUrl.includes('cloudinary.com')
-        ? viewUrl.replace('/upload/', '/upload/fl_attachment/')
-        : viewUrl;
+      const dlName  = `${s.title}.pdf`;
+
+      // Blob download — works cross-origin (Cloudinary), no fl_attachment needed
+      async function triggerDownload() {
+        try {
+          const res  = await fetch(viewUrl);
+          const blob = await res.blob();
+          const burl = URL.createObjectURL(blob);
+          const a    = Object.assign(document.createElement('a'), { href: burl, download: dlName });
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(burl), 10000);
+        } catch {
+          window.open(viewUrl, '_blank');   // fallback: open in new tab
+        }
+      }
 
       document.getElementById('pdfBadge').style.display       = '';
       document.getElementById('pdfDownloadBtn').style.display = '';
       document.getElementById('pdfViewBtn').style.display     = '';
-      document.getElementById('pdfDownloadBtn').href          = dlUrl;
-      document.getElementById('pdfViewBtn').href              = viewUrl;
+      document.getElementById('pdfDownloadBtn').removeAttribute('href');
+      document.getElementById('pdfDownloadBtn').onclick = triggerDownload;
+      document.getElementById('pdfViewBtn').href = viewUrl;
 
       // Sticky button
       const sticky = document.getElementById('stickyPdf');
-      sticky.href  = dlUrl;
+      sticky.removeAttribute('href');
+      sticky.onclick       = triggerDownload;
       sticky.style.display = '';
 
       // Show sticky after scrolling past the hero
