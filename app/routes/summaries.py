@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, UploadFile, File, Form, Query, status
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import date as date_type, date
-import urllib.request
 import re
 
 from app.database import get_db
@@ -28,35 +26,48 @@ def _get_or_404(db: Session, summary_id: int) -> SujasSummary:
     return summary
 
 
-# ── GET /sujas/{id}/pdf  (proxy download — avoids Cloudinary CORS/auth) ──────
+# ── GET /sujas/{id}/pdf  (signed download redirect) ──────────────────────────
 
-@router.get("/{summary_id}/pdf", summary="Proxy-download the attached PDF")
+@router.get("/{summary_id}/pdf", summary="Download the attached PDF")
 def download_pdf(summary_id: int, db: Session = Depends(get_db)):
     """
-    Fetches the PDF from Cloudinary server-side and streams it to the client
-    with Content-Disposition: attachment so the browser saves it as a file.
-    No CORS issues, no Cloudinary transformation restrictions.
+    Generates a signed Cloudinary URL and redirects the browser to it.
+    The signed URL bypasses Strict Transformations and auth restrictions.
     """
+    from fastapi.responses import RedirectResponse
+    import cloudinary
+    import cloudinary.utils
+
     summary = _get_or_404(db, summary_id)
     if not summary.pdf_file:
         raise HTTPException(status_code=404, detail="This summary has no PDF attached.")
 
     pdf_url = summary.pdf_file
-    safe_title = re.sub(r'[^\w\s-]', '', summary.title).strip().replace(' ', '_') or f"summary_{summary_id}"
-    filename   = f"{safe_title}.pdf"
 
-    try:
-        req = urllib.request.Request(pdf_url, headers={"User-Agent": "SujasApp/1.0"})
-        remote = urllib.request.urlopen(req, timeout=30)
-        content = remote.read()
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Could not fetch PDF: {exc}")
+    if "cloudinary.com" in pdf_url:
+        # Extract public_id from stored URL
+        # URL format: https://res.cloudinary.com/{cloud}/raw/upload/v{ver}/{public_id}.pdf
+        url_path = pdf_url.split("?")[0]
+        parts    = url_path.split("/upload/")
+        if len(parts) == 2:
+            after = parts[1]
+            if after.startswith("v") and "/" in after:
+                after = after.split("/", 1)[1]          # strip version segment
+            public_id = after.rsplit(".", 1)[0] if "." in after else after
 
-    return StreamingResponse(
-        iter([content]),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+            # Signed URL — valid for 1 hour, forces download with correct filename
+            safe_title = re.sub(r'[^\w\s-]', '', summary.title).strip().replace(' ', '_') \
+                         or f"summary_{summary_id}"
+            signed_url, _ = cloudinary.utils.cloudinary_url(
+                public_id,
+                resource_type="raw",
+                sign_url=True,
+                attachment=f"{safe_title}.pdf",   # sets Content-Disposition filename
+            )
+            return RedirectResponse(url=signed_url)
+
+    # Fallback for legacy local file paths
+    return RedirectResponse(url=pdf_url)
 
 
 # ── GET /sujas ────────────────────────────────────────────────────────────────
