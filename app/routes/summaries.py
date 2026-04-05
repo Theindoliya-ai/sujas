@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, UploadFile, File, Form, Query, status
+from fastapi.responses import StreamingResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import date as date_type, date
-import re
+import re, urllib.request
 
 from app.database import get_db
 from app.models import SujasSummary, AdminUser
@@ -26,16 +27,20 @@ def _get_or_404(db: Session, summary_id: int) -> SujasSummary:
     return summary
 
 
-# ── GET /sujas/{id}/pdf  (signed download redirect) ──────────────────────────
+# ── GET /sujas/{id}/pdf  (proxy — bypasses Cloudinary CDN restrictions) ───────
 
-@router.get("/{summary_id}/pdf", summary="Download the attached PDF")
-def download_pdf(summary_id: int, db: Session = Depends(get_db)):
+@router.get("/{summary_id}/pdf", summary="View or download the attached PDF")
+def serve_pdf(
+    summary_id: int,
+    inline: bool = Query(False, description="True = view in browser, False = download"),
+    db: Session = Depends(get_db),
+):
     """
-    Generates a signed Cloudinary URL and redirects the browser to it.
-    The signed URL bypasses Strict Transformations and auth restrictions.
+    Fetches the PDF via Cloudinary's private API (api.cloudinary.com) which
+    bypasses CDN access controls, then streams it to the client.
+    - ?inline=false (default) → Content-Disposition: attachment  (download)
+    - ?inline=true            → Content-Disposition: inline       (view in browser)
     """
-    from fastapi.responses import RedirectResponse
-    import cloudinary
     import cloudinary.utils
 
     summary = _get_or_404(db, summary_id)
@@ -44,25 +49,42 @@ def download_pdf(summary_id: int, db: Session = Depends(get_db)):
 
     pdf_url = summary.pdf_file
 
+    # Extract public_id (raw resources include the .pdf extension)
     if "cloudinary.com" in pdf_url:
-        # Extract public_id — for raw resources the .pdf extension is included
-        url_path = pdf_url.split("?")[0]
-        parts    = url_path.split("/upload/")
-        if len(parts) == 2:
-            after = parts[1]
-            if after.startswith("v") and "/" in after:
-                after = after.split("/", 1)[1]   # strip version segment
-            public_id = after                     # keep full name including .pdf
+        url_path  = pdf_url.split("?")[0]
+        parts     = url_path.split("/upload/")
+        after     = parts[1] if len(parts) == 2 else ""
+        if after.startswith("v") and "/" in after:
+            after = after.split("/", 1)[1]
+        public_id = after
+    else:
+        public_id = None
 
-            # private_download_url hits api.cloudinary.com (not CDN) so it
-            # bypasses all CDN access restrictions and strict transformations.
-            dl_url = cloudinary.utils.private_download_url(
-                public_id, "", resource_type="raw", type="upload"
-            )
-            return RedirectResponse(url=dl_url)
+    # Fetch the raw bytes via private API (always authenticated, no CDN issues)
+    if public_id:
+        fetch_url = cloudinary.utils.private_download_url(
+            public_id, "", resource_type="raw", type="upload"
+        )
+    else:
+        fetch_url = pdf_url   # legacy local path fallback
 
-    # Fallback for legacy local file paths
-    return RedirectResponse(url=pdf_url)
+    try:
+        req  = urllib.request.Request(fetch_url, headers={"User-Agent": "SujasApp/1.0"})
+        resp = urllib.request.urlopen(req, timeout=30)
+        content = resp.read()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not fetch PDF: {exc}")
+
+    safe_title = re.sub(r'[^\w\s-]', '', summary.title).strip().replace(' ', '_') \
+                 or f"summary_{summary_id}"
+    disposition = f'inline; filename="{safe_title}.pdf"' if inline \
+                  else f'attachment; filename="{safe_title}.pdf"'
+
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": disposition},
+    )
 
 
 # ── GET /sujas ────────────────────────────────────────────────────────────────
