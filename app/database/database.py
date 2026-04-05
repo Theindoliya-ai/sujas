@@ -46,13 +46,12 @@ if _is_sqlite:
         connect_args={"check_same_thread": False},
     )
 elif _is_pooler:
-    # PgBouncer transaction mode:
-    #   - NullPool: don't keep SQLAlchemy-level connections alive between requests
-    #   - prepare_threshold=0: disable server-side prepared statements entirely
+    # PgBouncer transaction mode — NullPool only, no special connect_args.
+    # psycopg2 does not use server-side prepared statements by default,
+    # so NullPool alone is sufficient for transaction mode compatibility.
     engine = create_engine(
         DATABASE_URL,
         poolclass=NullPool,
-        connect_args={"prepare_threshold": 0},
     )
 else:
     engine = create_engine(
