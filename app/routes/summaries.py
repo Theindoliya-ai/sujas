@@ -45,26 +45,21 @@ def download_pdf(summary_id: int, db: Session = Depends(get_db)):
     pdf_url = summary.pdf_file
 
     if "cloudinary.com" in pdf_url:
-        # Extract public_id from stored URL.
-        # For raw resources the extension IS part of the public_id —
-        # do NOT strip it or Cloudinary returns 404.
-        # URL: https://res.cloudinary.com/{cloud}/raw/upload/v{ver}/{public_id}
+        # Extract public_id — for raw resources the .pdf extension is included
         url_path = pdf_url.split("?")[0]
         parts    = url_path.split("/upload/")
         if len(parts) == 2:
             after = parts[1]
-            # Strip optional version segment  v1234567890/
             if after.startswith("v") and "/" in after:
-                after = after.split("/", 1)[1]
-            public_id = after   # keep full path including .pdf extension
+                after = after.split("/", 1)[1]   # strip version segment
+            public_id = after                     # keep full name including .pdf
 
-            # Signed URL — bypasses Strict Transformations & access restrictions
-            signed_url, _ = cloudinary.utils.cloudinary_url(
-                public_id,
-                resource_type="raw",
-                sign_url=True,
+            # private_download_url hits api.cloudinary.com (not CDN) so it
+            # bypasses all CDN access restrictions and strict transformations.
+            dl_url = cloudinary.utils.private_download_url(
+                public_id, "", resource_type="raw", type="upload"
             )
-            return RedirectResponse(url=signed_url)
+            return RedirectResponse(url=dl_url)
 
     # Fallback for legacy local file paths
     return RedirectResponse(url=pdf_url)
