@@ -22,14 +22,18 @@ _is_pg      = not _is_sqlite
 _db_password = os.getenv("DB_PASSWORD")
 if _db_password and _is_pg:
     _p = urlparse(DATABASE_URL)
+    # For Supabase pooler the username in the URL may be URL-encoded
+    # (e.g. postgres.projref becomes postgres.projref after unquoting)
+    from urllib.parse import unquote
+    _username = unquote(_p.username) if _p.username else "postgres"
     DATABASE_URL = str(_SA_URL.create(
         drivername="postgresql+psycopg2",
-        username=_p.username or "postgres",
+        username=_username,
         password=_db_password,          # SQLAlchemy encodes special chars here
         host=_p.hostname,
         port=_p.port or (6543 if _is_pooler else 5432),
         database=(_p.path or "/postgres").lstrip("/"),
-        query={"sslmode": "require"},   # SSL only — no pgbouncer param (invalid in PG)
+        query={"sslmode": "require"},
     ))
 elif _is_pg and "sslmode" not in DATABASE_URL:
     sep = "&" if "?" in DATABASE_URL else "?"
