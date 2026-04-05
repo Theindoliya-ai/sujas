@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, UploadFile, File, Form, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import date as date_type, date
+import urllib.request
+import re
 
 from app.database import get_db
 from app.models import SujasSummary, AdminUser
@@ -23,6 +26,37 @@ def _get_or_404(db: Session, summary_id: int) -> SujasSummary:
     if not summary:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found")
     return summary
+
+
+# ── GET /sujas/{id}/pdf  (proxy download — avoids Cloudinary CORS/auth) ──────
+
+@router.get("/{summary_id}/pdf", summary="Proxy-download the attached PDF")
+def download_pdf(summary_id: int, db: Session = Depends(get_db)):
+    """
+    Fetches the PDF from Cloudinary server-side and streams it to the client
+    with Content-Disposition: attachment so the browser saves it as a file.
+    No CORS issues, no Cloudinary transformation restrictions.
+    """
+    summary = _get_or_404(db, summary_id)
+    if not summary.pdf_file:
+        raise HTTPException(status_code=404, detail="This summary has no PDF attached.")
+
+    pdf_url = summary.pdf_file
+    safe_title = re.sub(r'[^\w\s-]', '', summary.title).strip().replace(' ', '_') or f"summary_{summary_id}"
+    filename   = f"{safe_title}.pdf"
+
+    try:
+        req = urllib.request.Request(pdf_url, headers={"User-Agent": "SujasApp/1.0"})
+        remote = urllib.request.urlopen(req, timeout=30)
+        content = remote.read()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not fetch PDF: {exc}")
+
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ── GET /sujas ────────────────────────────────────────────────────────────────
