@@ -42,7 +42,7 @@
 })();
 
 /* ── Config ──────────────────────────────────────────────────────────────── */
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = (window.__API_BASE__ || 'https://sujas.onrender.com') + '/api/v1';
 
 /* ── Auth helpers ────────────────────────────────────────────────────────── */
 const auth = {
