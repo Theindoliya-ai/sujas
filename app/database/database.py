@@ -45,11 +45,13 @@ if _is_sqlite:
         "connect_args": {"check_same_thread": False},
     }
 elif _is_pooler:
-    # PgBouncer transaction mode: disable SQLAlchemy's own connection pool
-    # and prepared statements (not supported in transaction mode)
+    # PgBouncer transaction mode: disable connection pooling AND prepared
+    # statements — both are unsupported in transaction mode.
+    # prepare_threshold=None tells psycopg2 never to use server-side
+    # prepared statements, preventing "prepared statement does not exist" errors.
     _engine_kwargs = {
-        "poolclass":          NullPool,
-        "connect_args":       {"options": "-c statement_timeout=30000"},
+        "poolclass":    NullPool,
+        "connect_args": {"prepare_threshold": None},
     }
 else:
     _engine_kwargs = {
