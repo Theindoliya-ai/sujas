@@ -93,11 +93,17 @@ class SujasSummaryResponse(SujasSummaryBase):
     @computed_field  # type: ignore[misc]
     @property
     def pdf_url(self) -> Optional[str]:
-        """Absolute-path-relative URL ready for the frontend."""
-        if self.pdf_file:
-            filename = os.path.basename(self.pdf_file)
-            return f"/uploads/{filename}"
-        return None
+        """
+        Full URL ready for the frontend.
+        - Cloudinary uploads: returned as-is (already absolute https://)
+        - Legacy local files: served from /uploads/<filename>
+        """
+        if not self.pdf_file:
+            return None
+        if self.pdf_file.startswith("http"):
+            return self.pdf_file  # Cloudinary secure_url — use directly
+        filename = os.path.basename(self.pdf_file)
+        return f"/uploads/{filename}"
 
     model_config = {"from_attributes": True}
 
